@@ -16,3 +16,7 @@ export interface CreateFamilyDto {
 export interface JoinFamilyDto {
   inviteCode: string;
 }
+
+export interface UpdateFamilyDto {
+  name: string;
+}

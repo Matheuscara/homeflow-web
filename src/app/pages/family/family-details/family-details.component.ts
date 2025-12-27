@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { FamilyService } from '../../../services/family.service';
 import { AuthService } from '../../../services/auth.service';
 import { Family } from '../../../models/family.model';
@@ -8,7 +9,7 @@ import { Family } from '../../../models/family.model';
 @Component({
   selector: 'app-family-details',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
@@ -73,7 +74,47 @@ import { Family } from '../../../models/family.model';
               <div class="grid md:grid-cols-2 gap-6">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Nome</label>
-                  <p class="text-lg text-gray-900">{{ familyData.name }}</p>
+                  @if (editingName()) {
+                    <div class="flex gap-2">
+                      <input
+                        type="text"
+                        [ngModel]="newName()"
+                        (ngModelChange)="newName.set($event)"
+                        class="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Nome da família"
+                        (keyup.enter)="saveName()"
+                        (keyup.escape)="cancelEdit()"
+                      >
+                      <button
+                        (click)="saveName()"
+                        class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm"
+                        [disabled]="!newName()"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        (click)="cancelEdit()"
+                        class="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="flex items-center gap-2">
+                      <p class="text-lg text-gray-900">{{ familyData.name }}</p>
+                      @if (familyData.adminId === authService.currentUser()?.id) {
+                        <button
+                          (click)="startEdit()"
+                          class="p-1 text-gray-400 hover:text-indigo-600 transition"
+                          title="Editar nome"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  }
                 </div>
 
                 <div>
@@ -179,6 +220,8 @@ export class FamilyDetailsComponent implements OnInit {
   family = this.familyService.currentFamily;
   loading = signal(true);
   copied = signal(false);
+  editingName = signal(false);
+  newName = signal('');
 
   ngOnInit(): void {
     this.loadFamily();
@@ -194,6 +237,29 @@ export class FamilyDetailsComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  startEdit(): void {
+    this.newName.set(this.family()?.name || '');
+    this.editingName.set(true);
+  }
+
+  cancelEdit(): void {
+    this.editingName.set(false);
+  }
+
+  saveName(): void {
+    const name = this.newName().trim();
+    if (!name) return;
+
+    const id = this.family()?.id;
+    if (id) {
+      this.familyService.updateFamily(id, { name }).subscribe({
+        next: () => {
+          this.editingName.set(false);
+        }
+      });
+    }
   }
 
   copyInviteCode(): void {

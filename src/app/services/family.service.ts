@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Observable, tap, switchMap } from 'rxjs';
 import { ApiService } from './api.service';
 import { UserService, UserWithFamily } from './user.service';
-import { CreateFamilyDto, Family, JoinFamilyDto } from '../models/family.model';
+import { CreateFamilyDto, Family, JoinFamilyDto, UpdateFamilyDto } from '../models/family.model';
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +32,12 @@ export class FamilyService {
 
   getFamily(id: string): Observable<Family> {
     return this.api.get<Family>(`/families/${id}`);
+  }
+
+  updateFamily(id: string, data: UpdateFamilyDto): Observable<UserWithFamily> {
+    return this.api.patch<Family>(`/families/${id}`, data).pipe(
+      switchMap(() => this.userService.getMe())
+    );
   }
 
   leaveFamily(): Observable<UserWithFamily> {
